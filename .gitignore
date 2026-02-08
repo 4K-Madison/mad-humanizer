@@ -1,2 +1,10 @@
 /docs/
 CLAUDE.md
+git-commit-msg
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+venv/
+.env
