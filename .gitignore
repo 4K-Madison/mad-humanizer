@@ -1,6 +1,7 @@
 /docs/
 CLAUDE.md
 git-commit-msg
+.claude/
 
 # Python
 __pycache__/
