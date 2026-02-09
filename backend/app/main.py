@@ -17,14 +17,43 @@ async def lifespan(app: FastAPI):
     setup_logging(debug=settings.DEBUG)
     logger.info("Starting MAD-HUMANIZER", debug=settings.DEBUG)
 
-    # Startup tasks will be added in Plans 02, 03, 04:
-    # - Database connection (Plan 02)
-    # - Model loading (Plan 03)
-    # - Detector registry (Plan 04)
+    # Database
+    from app.db.session import init_db, close_db
+
+    await init_db()
+    app.state.database_connected = True
+    logger.info("Database initialized")
+
+    # Humanizer model
+    from app.services.humanizer import HumanizerService
+
+    app.state.humanizer = HumanizerService()
+    try:
+        app.state.humanizer.load_model()
+        app.state.model_loaded = True
+        logger.info("Humanizer model loaded")
+    except Exception as exc:
+        logger.warning("Failed to load humanizer model — running without it", error=str(exc))
+        app.state.model_loaded = False
+
+    # Detector registry
+    from app.services.detectors.registry import DetectorRegistry
+
+    app.state.detector_registry = DetectorRegistry.register_defaults()
+    logger.info(
+        "Detector registry initialized",
+        available=len(app.state.detector_registry.get_available()),
+    )
 
     yield
 
-    # Shutdown cleanup will be added in Plans 02, 03
+    # Shutdown
+    if getattr(app.state, "humanizer", None) and app.state.humanizer.is_loaded:
+        app.state.humanizer.unload_model()
+        logger.info("Humanizer model unloaded")
+
+    await close_db()
+    logger.info("Database connection closed")
     logger.info("Shutting down MAD-HUMANIZER")
 
 
