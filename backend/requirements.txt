@@ -13,12 +13,6 @@ sqlalchemy[asyncio]==2.*
 # HTTP Client (for detector APIs)
 httpx==0.28.*
 
-# ML / Model (for humanizer service)
-torch>=2.0
-transformers>=4.40
-peft>=0.11
-accelerate>=0.30
-
 # Logging
 structlog>=24.0
 
