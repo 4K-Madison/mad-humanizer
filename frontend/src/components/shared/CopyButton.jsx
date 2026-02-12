@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
 import { Check, Copy } from "lucide-react";
 
 export default function CopyButton({ text }) {
@@ -16,18 +15,27 @@ export default function CopyButton({ text }) {
   };
 
   return (
-    <Button variant="outline" size="sm" onClick={handleCopy}>
+    <button
+      onClick={handleCopy}
+      className={`
+        flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-all
+        ${copied
+          ? "border-emerald-200 bg-emerald-50 text-emerald-600"
+          : "border-border/80 bg-white text-muted-foreground hover:border-badger/40 hover:text-badger"
+        }
+      `}
+    >
       {copied ? (
         <>
-          <Check className="mr-1 h-4 w-4" />
-          Copied!
+          <Check className="h-3.5 w-3.5" />
+          Copied
         </>
       ) : (
         <>
-          <Copy className="mr-1 h-4 w-4" />
+          <Copy className="h-3.5 w-3.5" />
           Copy
         </>
       )}
-    </Button>
+    </button>
   );
 }

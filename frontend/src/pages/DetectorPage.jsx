@@ -6,6 +6,7 @@ import DetectorSelector from "@/components/detector/DetectorSelector";
 import DetectorResults from "@/components/detector/DetectorResults";
 import LoadingSpinner from "@/components/shared/LoadingSpinner";
 import ErrorAlert from "@/components/shared/ErrorAlert";
+import { ScanSearch } from "lucide-react";
 
 export default function DetectorPage() {
   const [inputText, setInputText] = useState("");
@@ -21,9 +22,7 @@ export default function DetectorPage() {
           data.detectors.filter((d) => d.available).map((d) => d.name)
         );
       })
-      .catch(() => {
-        // Detectors list will be empty; user can still submit without selection
-      });
+      .catch(() => {});
   }, []);
 
   const handleSubmit = (text) => {
@@ -37,22 +36,41 @@ export default function DetectorPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">AI Detector</h1>
-        <p className="mt-1 text-muted-foreground">
-          Run your text against multiple AI detection services and see per-detector
-          scores.
+    <div className="space-y-8">
+      {/* Page header */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-badger/10">
+            <ScanSearch className="h-5 w-5 text-badger" />
+          </div>
+          <div>
+            <h1 className="font-display text-3xl font-extrabold tracking-tight text-foreground">
+              AI Detector
+            </h1>
+          </div>
+        </div>
+        <p className="max-w-2xl text-base leading-relaxed text-muted-foreground">
+          Analyze text against multiple AI detection services. See per-detector confidence scores and identify AI-generated content.
         </p>
       </div>
 
-      <DetectorForm
-        value={inputText}
-        onChange={handleInputChange}
-        onSubmit={handleSubmit}
-        isLoading={isLoading}
-      />
+      {/* Input section */}
+      <div>
+        <div className="mb-3 flex items-center gap-2">
+          <div className="h-2 w-2 rounded-full bg-badger" />
+          <span className="font-display text-sm font-bold uppercase tracking-wide text-foreground">
+            Text to Analyze
+          </span>
+        </div>
+        <DetectorForm
+          value={inputText}
+          onChange={handleInputChange}
+          onSubmit={handleSubmit}
+          isLoading={isLoading}
+        />
+      </div>
 
+      {/* Detector selector */}
       <DetectorSelector
         detectors={detectors}
         selected={selectedDetectors}
@@ -61,7 +79,7 @@ export default function DetectorPage() {
 
       <ErrorAlert message={error} onDismiss={reset} />
 
-      {isLoading && <LoadingSpinner message="Running detection..." />}
+      {isLoading && <LoadingSpinner message="Running detection across all selected services..." />}
 
       {result && (
         <DetectorResults
