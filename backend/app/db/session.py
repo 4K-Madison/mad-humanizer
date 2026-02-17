@@ -5,6 +5,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlmodel import SQLModel
 
 from app.config import settings
+from app.models.user import User  # noqa: F401 — ensure table is created
 
 engine = create_async_engine(
     settings.DATABASE_URL,

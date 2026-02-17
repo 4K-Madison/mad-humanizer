@@ -25,15 +25,16 @@ async def lifespan(app: FastAPI):
     logger.info("Database initialized")
 
     # Humanizer model
-    from app.services.humanizer import HumanizerService
-
-    app.state.humanizer = HumanizerService()
     try:
+        from app.services.humanizer import HumanizerService
+
+        app.state.humanizer = HumanizerService()
         app.state.humanizer.load_model()
         app.state.model_loaded = True
         logger.info("Humanizer model loaded")
     except Exception as exc:
         logger.warning("Failed to load humanizer model — running without it", error=str(exc))
+        app.state.humanizer = None
         app.state.model_loaded = False
 
     # Detector registry
@@ -48,7 +49,7 @@ async def lifespan(app: FastAPI):
     yield
 
     # Shutdown
-    if getattr(app.state, "humanizer", None) and app.state.humanizer.is_loaded:
+    if getattr(app.state, "humanizer", None) and getattr(app.state.humanizer, "is_loaded", False):
         app.state.humanizer.unload_model()
         logger.info("Humanizer model unloaded")
 

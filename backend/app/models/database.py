@@ -41,6 +41,6 @@ class RequestRecord(SQLModel, table=True):
     )
     status: str = Field(default=RequestStatus.pending.value, max_length=20)
     created_at: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc)
+        default_factory=lambda: datetime.now(timezone.utc).replace(tzinfo=None)
     )
     processing_time_ms: int | None = Field(default=None)

@@ -4,6 +4,7 @@ const API_BASE_URL =
 async function request(endpoint, options = {}) {
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     headers: { "Content-Type": "application/json" },
+    credentials: "include",
     ...options,
   });
 

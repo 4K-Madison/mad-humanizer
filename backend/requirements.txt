@@ -5,13 +5,20 @@ pydantic==2.*
 pydantic-settings==2.*
 
 # Database
-sqlmodel==0.0.22
-asyncpg==0.30.*
+sqlmodel>=0.0.34
+asyncpg>=0.30
 aiosqlite>=0.20.0
 sqlalchemy[asyncio]==2.*
 
 # HTTP Client (for detector APIs)
 httpx==0.28.*
+
+# Auth
+python-jose[cryptography]>=3.3
+google-auth>=2.0
+requests>=2.32
+python-multipart>=0.0.9
+passlib[bcrypt]==1.7.*
 
 # Logging
 structlog>=24.0
