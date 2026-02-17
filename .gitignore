@@ -2,6 +2,7 @@
 CLAUDE.md
 git-commit-msg
 .claude/
+env-var.txt
 
 # Python
 __pycache__/
