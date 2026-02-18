@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Menu, X, Zap, ScanSearch, LogOut, LogIn, User } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { toast } from "sonner";
 
 const navLinks = [
   { to: "/", label: "Humanizer", icon: Zap },
@@ -108,6 +109,7 @@ export default function Header() {
                       onClick={() => {
                         setUserMenuOpen(false);
                         logout();
+                        toast.success("You have been signed out");
                       }}
                       className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-muted-foreground transition-colors hover:bg-badger-50 hover:text-badger"
                     >
@@ -193,6 +195,7 @@ export default function Header() {
                     onClick={() => {
                       setMobileOpen(false);
                       logout();
+                      toast.success("You have been signed out");
                     }}
                     className="flex w-full items-center gap-3 rounded-lg px-4 py-3 font-display text-sm font-semibold text-muted-foreground transition-all hover:bg-red-50 hover:text-red-600"
                   >
