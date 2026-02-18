@@ -1,7 +1,7 @@
-import { Navigate } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import GoogleLoginButton from "@/components/auth/GoogleLoginButton";
-import { Loader2, Zap } from "lucide-react";
+import { Loader2, Zap, ArrowLeft } from "lucide-react";
 
 export default function LoginPage() {
   const { user, loading } = useAuth();
@@ -22,6 +22,16 @@ export default function LoginPage() {
     <div className="flex min-h-screen flex-col bg-background">
       {/* Top accent stripe */}
       <div className="h-1 w-full bg-gradient-to-r from-badger-dark via-badger to-badger-light" />
+
+      <div className="px-6 pt-6">
+        <Link
+          to="/"
+          className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-badger-50 hover:text-badger"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to home
+        </Link>
+      </div>
 
       <div className="flex flex-1 items-center justify-center px-6">
         <div className="w-full max-w-sm space-y-8">
