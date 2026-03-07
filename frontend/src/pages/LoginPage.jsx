@@ -1,6 +1,7 @@
 import { Link, Navigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import GoogleLoginButton from "@/components/auth/GoogleLoginButton";
+import EmailAuthForm from "@/components/auth/EmailAuthForm";
 import { Loader2, Zap, ArrowLeft } from "lucide-react";
 
 export default function LoginPage() {
@@ -64,21 +65,18 @@ export default function LoginPage() {
 
               <GoogleLoginButton />
 
-              {/* Divider for future email+password */}
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">
                   <span className="w-full border-t border-border/60" />
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
                   <span className="bg-white px-3 text-muted-foreground">
-                    More options coming soon
+                    or continue with email
                   </span>
                 </div>
               </div>
 
-              <p className="text-center text-xs text-muted-foreground">
-                Email &amp; password login will be available soon.
-              </p>
+              <EmailAuthForm />
             </div>
           </div>
         </div>
