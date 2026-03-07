@@ -1,5 +1,6 @@
 """Google OAuth token exchange and JWT management."""
 
+import secrets
 from datetime import datetime, timedelta, timezone
 
 import httpx
@@ -7,8 +8,11 @@ import structlog
 from google.auth.transport import requests as google_requests
 from google.oauth2 import id_token as google_id_token
 from jose import JWTError, jwt
+from passlib.context import CryptContext
 
 from app.config import settings
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 logger = structlog.get_logger()
 
@@ -58,6 +62,21 @@ def create_access_token(user_id: str, email: str) -> str:
         "iat": datetime.now(timezone.utc),
     }
     return jwt.encode(payload, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
+
+
+def hash_password(password: str) -> str:
+    """Hash a plaintext password using bcrypt."""
+    return pwd_context.hash(password)
+
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    """Verify a plaintext password against a bcrypt hash."""
+    return pwd_context.verify(plain_password, hashed_password)
+
+
+def generate_verification_code() -> str:
+    """Generate a 6-digit numeric verification code."""
+    return f"{secrets.randbelow(900000) + 100000}"
 
 
 def verify_access_token(token: str) -> dict | None:

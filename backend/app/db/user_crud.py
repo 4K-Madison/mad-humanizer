@@ -43,6 +43,25 @@ async def create_google_user(
     return user
 
 
+async def create_email_user(
+    session: AsyncSession,
+    email: str,
+    hashed_password: str,
+    name: str | None = None,
+) -> User:
+    """Create a new user with email + password credentials."""
+    user = User(
+        email=email,
+        hashed_password=hashed_password,
+        name=name,
+        auth_provider="email",
+    )
+    session.add(user)
+    await session.commit()
+    await session.refresh(user)
+    return user
+
+
 async def update_google_user(
     session: AsyncSession,
     user: User,
