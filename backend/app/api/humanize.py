@@ -23,7 +23,7 @@ async def humanize_text(request: Request, body: HumanizeRequest):
 
     start = time.perf_counter()
     try:
-        humanized_text = humanizer.humanize(
+        humanized_text = await humanizer.humanize(
             text=body.text,
             temperature=temperature,
             max_tokens=max_tokens,

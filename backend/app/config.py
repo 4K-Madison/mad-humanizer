@@ -9,9 +9,10 @@ class Settings(BaseSettings):
     # Database
     DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/mad_humanizer"
 
-    # Model
-    BASE_MODEL_NAME: str = "meta-llama/Llama-3.2-1B"
-    LORA_ADAPTER_PATH: str = "./model/lora_adapter"
+    # Humanizer (vLLM remote inference)
+    HUMANIZER_API_URL: str = ""
+    HUMANIZER_MODEL_NAME: str = "humanizer"
+    HUMANIZER_API_KEY: str = ""
     MAX_OUTPUT_TOKENS: int = 2048
     TEMPERATURE: float = 0.7
 

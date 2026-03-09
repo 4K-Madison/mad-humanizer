@@ -1,7 +1,5 @@
+import httpx
 import structlog
-import torch
-from peft import PeftModel
-from transformers import AutoModelForCausalLM, AutoTokenizer
 
 from app.config import settings
 
@@ -9,72 +7,76 @@ logger = structlog.get_logger()
 
 
 class HumanizerService:
-    def __init__(self):
-        self.model = None
-        self.tokenizer = None
-        self._loaded = False
+    def __init__(self, base_url: str, model_name: str, api_key: str = ""):
+        self.base_url = base_url.rstrip("/")
+        self.model_name = model_name
+        self.api_key = api_key
+        self.client: httpx.AsyncClient | None = None
+        self._available = False
 
     @property
     def is_loaded(self) -> bool:
-        return self._loaded
+        return self._available
 
-    def load_model(self):
-        """Load base Llama 3.2 model with LoRA adapter. Call once at startup."""
-        logger.info(
-            "Loading humanizer model",
-            base_model=settings.BASE_MODEL_NAME,
-            lora_path=settings.LORA_ADAPTER_PATH,
-        )
-        base_model = AutoModelForCausalLM.from_pretrained(
-            settings.BASE_MODEL_NAME,
-            device_map="auto",
-            torch_dtype=torch.float16,
-        )
-        self.model = PeftModel.from_pretrained(
-            base_model,
-            settings.LORA_ADAPTER_PATH,
-        )
-        self.tokenizer = AutoTokenizer.from_pretrained(settings.BASE_MODEL_NAME)
-        if self.tokenizer.pad_token is None:
-            self.tokenizer.pad_token = self.tokenizer.eos_token
-        self.model.eval()
-        self._loaded = True
-        logger.info("Humanizer model loaded successfully")
+    async def connect(self):
+        """Initialize HTTP client and verify vLLM server is reachable."""
+        headers = {}
+        if self.api_key:
+            headers["Authorization"] = f"Bearer {self.api_key}"
 
-    def humanize(
+        self.client = httpx.AsyncClient(
+            base_url=self.base_url,
+            headers=headers,
+            timeout=httpx.Timeout(120.0, connect=10.0),
+        )
+
+        try:
+            resp = await self.client.get("/v1/models")
+            resp.raise_for_status()
+            models = resp.json()
+            available_models = [m["id"] for m in models.get("data", [])]
+            logger.info("vLLM server connected", available_models=available_models)
+
+            if self.model_name not in available_models:
+                logger.warning(
+                    "Requested model not found on vLLM server",
+                    requested=self.model_name,
+                    available=available_models,
+                )
+            self._available = True
+        except Exception as exc:
+            logger.error("Failed to connect to vLLM server", error=str(exc))
+            self._available = False
+
+    async def humanize(
         self,
         text: str,
         temperature: float = settings.TEMPERATURE,
         max_tokens: int = settings.MAX_OUTPUT_TOKENS,
     ) -> str:
-        """Run humanization inference on the given text."""
-        if not self._loaded:
-            raise RuntimeError("Humanizer model is not loaded")
+        """Send humanization request to vLLM server."""
+        if not self._available or not self.client:
+            raise RuntimeError("Humanizer service is not available")
 
-        inputs = self.tokenizer(text, return_tensors="pt", truncation=True).to(
-            self.model.device
-        )
-        input_length = inputs["input_ids"].shape[1]
+        payload = {
+            "model": self.model_name,
+            "messages": [
+                {"role": "user", "content": text}
+            ],
+            "max_tokens": max_tokens,
+            "temperature": temperature,
+            "top_p": 0.9,
+        }
 
-        with torch.no_grad():
-            outputs = self.model.generate(
-                **inputs,
-                max_new_tokens=max_tokens,
-                temperature=temperature,
-                do_sample=True,
-            )
+        resp = await self.client.post("/v1/chat/completions", json=payload)
+        resp.raise_for_status()
+        data = resp.json()
+        return data["choices"][0]["message"]["content"].strip()
 
-        # Only decode the newly generated tokens (strip the echoed input)
-        new_tokens = outputs[0][input_length:]
-        return self.tokenizer.decode(new_tokens, skip_special_tokens=True)
-
-    def unload_model(self):
-        """Release model from memory. Call at shutdown."""
-        del self.model
-        del self.tokenizer
-        self.model = None
-        self.tokenizer = None
-        self._loaded = False
-        if torch.cuda.is_available():
-            torch.cuda.empty_cache()
-        logger.info("Humanizer model unloaded")
+    async def disconnect(self):
+        """Close HTTP client."""
+        if self.client:
+            await self.client.aclose()
+            self.client = None
+        self._available = False
+        logger.info("Humanizer client disconnected")

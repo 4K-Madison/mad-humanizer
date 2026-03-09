@@ -24,16 +24,25 @@ async def lifespan(app: FastAPI):
     app.state.database_connected = True
     logger.info("Database initialized")
 
-    # Humanizer model
-    try:
-        from app.services.humanizer import HumanizerService
+    # Humanizer (vLLM remote inference)
+    if settings.HUMANIZER_API_URL:
+        try:
+            from app.services.humanizer import HumanizerService
 
-        app.state.humanizer = HumanizerService()
-        app.state.humanizer.load_model()
-        app.state.model_loaded = True
-        logger.info("Humanizer model loaded")
-    except Exception as exc:
-        logger.warning("Failed to load humanizer model — running without it", error=str(exc))
+            app.state.humanizer = HumanizerService(
+                base_url=settings.HUMANIZER_API_URL,
+                model_name=settings.HUMANIZER_MODEL_NAME,
+                api_key=settings.HUMANIZER_API_KEY,
+            )
+            await app.state.humanizer.connect()
+            app.state.model_loaded = app.state.humanizer.is_loaded
+            logger.info("Humanizer service initialized", available=app.state.model_loaded)
+        except Exception as exc:
+            logger.warning("Failed to connect to humanizer service", error=str(exc))
+            app.state.humanizer = None
+            app.state.model_loaded = False
+    else:
+        logger.warning("HUMANIZER_API_URL not set — humanizer disabled")
         app.state.humanizer = None
         app.state.model_loaded = False
 
@@ -49,9 +58,8 @@ async def lifespan(app: FastAPI):
     yield
 
     # Shutdown
-    if getattr(app.state, "humanizer", None) and getattr(app.state.humanizer, "is_loaded", False):
-        app.state.humanizer.unload_model()
-        logger.info("Humanizer model unloaded")
+    if getattr(app.state, "humanizer", None):
+        await app.state.humanizer.disconnect()
 
     await close_db()
     logger.info("Database connection closed")
