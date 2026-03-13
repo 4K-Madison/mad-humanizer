@@ -24,6 +24,12 @@ async def lifespan(app: FastAPI):
     app.state.database_connected = True
     logger.info("Database initialized")
 
+    # Redis (for refresh tokens)
+    from app.db.redis import init_redis, close_redis
+
+    await init_redis()
+    app.state.redis_connected = True
+
     # Humanizer (vLLM remote inference)
     if settings.HUMANIZER_API_URL:
         try:
@@ -61,8 +67,9 @@ async def lifespan(app: FastAPI):
     if getattr(app.state, "humanizer", None):
         await app.state.humanizer.disconnect()
 
+    await close_redis()
     await close_db()
-    logger.info("Database connection closed")
+    logger.info("Database and Redis connections closed")
     logger.info("Shutting down MAD-HUMANIZER")
 
 

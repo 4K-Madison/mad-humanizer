@@ -4,19 +4,26 @@ import re
 from datetime import datetime, timedelta, timezone
 
 import structlog
-from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from pydantic import BaseModel, field_validator
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user
 from app.config import settings
+from app.db.refresh_token_store import (
+    get_valid_refresh_token,
+    revoke_all_user_tokens,
+    revoke_refresh_token,
+    store_refresh_token,
+)
 from app.db.session import get_session
 from app.db.user_crud import (
     create_email_user,
     create_google_user,
     get_user_by_email,
     get_user_by_google_id,
+    get_user_by_id,
     update_google_user,
 )
 from app.db.verification_crud import (
@@ -29,6 +36,7 @@ from app.models.user import User
 from app.models.verification import EmailVerification
 from app.services.auth import (
     create_access_token,
+    create_refresh_token_value,
     exchange_google_code,
     generate_verification_code,
     hash_password,
@@ -100,6 +108,46 @@ class ResendCodeRequest(BaseModel):
     email: str
 
 
+# --- Helpers ---
+
+
+async def _set_auth_cookies(response: Response, user: User) -> str:
+    """Generate access + refresh tokens, store refresh in Redis, set both cookies.
+
+    Returns the access token string.
+    """
+    # 1. Access token (JWT, 1h)
+    access_token = create_access_token(str(user.id), user.email)
+
+    # 2. Refresh token (opaque, 7d)
+    raw_refresh = create_refresh_token_value()
+    await store_refresh_token(str(user.id), raw_refresh)
+
+    # 3. Set access token cookie
+    response.set_cookie(
+        key="access_token",
+        value=access_token,
+        httponly=True,
+        secure=False,  # True in production (HTTPS)
+        samesite="lax",
+        max_age=settings.ACCESS_TOKEN_EXPIRY_MINUTES * 60,
+        path="/",
+    )
+
+    # 4. Set refresh token cookie
+    response.set_cookie(
+        key="refresh_token",
+        value=raw_refresh,
+        httponly=True,
+        secure=False,  # True in production (HTTPS)
+        samesite="lax",
+        max_age=settings.REFRESH_TOKEN_EXPIRY_DAYS * 86400,
+        path="/api/auth",  # scoped to auth endpoints only
+    )
+
+    return access_token
+
+
 # --- Endpoints ---
 
 
@@ -141,17 +189,8 @@ async def google_login(
         user = await create_google_user(session, email, name, picture, google_id)
         logger.info("New user created via Google", user_id=str(user.id), email=email)
 
-    # 5. Create JWT and set httpOnly cookie
-    access_token = create_access_token(str(user.id), user.email)
-    response.set_cookie(
-        key="access_token",
-        value=access_token,
-        httponly=True,
-        secure=False,  # Set True in production (HTTPS)
-        samesite="lax",
-        max_age=settings.JWT_EXPIRATION_MINUTES * 60,
-        path="/",
-    )
+    # 5. Create tokens and set httpOnly cookies
+    await _set_auth_cookies(response, user)
 
     return {
         "user": UserResponse(
@@ -246,17 +285,8 @@ async def verify_email_code(
     # 4. Mark code as used
     await mark_verification_used(session, verification)
 
-    # 5. Auto-login: create JWT + set cookie
-    access_token = create_access_token(str(user.id), user.email)
-    response.set_cookie(
-        key="access_token",
-        value=access_token,
-        httponly=True,
-        secure=False,
-        samesite="lax",
-        max_age=settings.JWT_EXPIRATION_MINUTES * 60,
-        path="/",
-    )
+    # 5. Auto-login: create tokens + set cookies
+    await _set_auth_cookies(response, user)
 
     logger.info("Email user created and verified", user_id=str(user.id), email=user.email)
     return {
@@ -288,16 +318,7 @@ async def email_login(
     if not user.is_active:
         raise HTTPException(status_code=403, detail="Account is deactivated")
 
-    access_token = create_access_token(str(user.id), user.email)
-    response.set_cookie(
-        key="access_token",
-        value=access_token,
-        httponly=True,
-        secure=False,
-        samesite="lax",
-        max_age=settings.JWT_EXPIRATION_MINUTES * 60,
-        path="/",
-    )
+    await _set_auth_cookies(response, user)
 
     logger.info("Email user logged in", user_id=str(user.id), email=user.email)
     return {
@@ -367,8 +388,58 @@ async def get_me(user: User = Depends(get_current_user)):
     )
 
 
+@router.post("/refresh")
+async def refresh_access_token(
+    request: Request,
+    response: Response,
+    session: AsyncSession = Depends(get_session),
+):
+    """Use a valid refresh token to get new access + refresh tokens (rotation)."""
+    # 1. Get refresh token from cookie
+    raw_refresh = request.cookies.get("refresh_token")
+    if not raw_refresh:
+        raise HTTPException(status_code=401, detail="No refresh token")
+
+    # 2. Validate against Redis
+    token_data = await get_valid_refresh_token(raw_refresh)
+    if not token_data:
+        response.delete_cookie(key="access_token", path="/")
+        response.delete_cookie(key="refresh_token", path="/api/auth")
+        raise HTTPException(status_code=401, detail="Invalid or expired refresh token")
+
+    # 3. Look up user
+    user = await get_user_by_id(session, token_data["user_id"])
+    if not user or not user.is_active:
+        await revoke_refresh_token(raw_refresh, token_data["user_id"])
+        raise HTTPException(status_code=401, detail="User not found or deactivated")
+
+    # 4. Rotate: revoke old refresh token, issue new pair
+    await revoke_refresh_token(raw_refresh, str(user.id))
+    await _set_auth_cookies(response, user)
+
+    logger.info("Tokens refreshed", user_id=str(user.id))
+    return {
+        "user": UserResponse(
+            id=str(user.id),
+            email=user.email,
+            name=user.name,
+            picture_url=user.picture_url,
+            auth_provider=user.auth_provider,
+        ),
+        "message": "Tokens refreshed",
+    }
+
+
 @router.post("/logout")
-async def logout(response: Response):
-    """Clear the JWT cookie to log the user out."""
+async def logout(
+    request: Request,
+    response: Response,
+):
+    """Delete refresh token from Redis and clear both cookies."""
+    raw_refresh = request.cookies.get("refresh_token")
+    if raw_refresh:
+        await revoke_refresh_token(raw_refresh)
+
     response.delete_cookie(key="access_token", path="/")
+    response.delete_cookie(key="refresh_token", path="/api/auth")
     return {"message": "Logged out"}

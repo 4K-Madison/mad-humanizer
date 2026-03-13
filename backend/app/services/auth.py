@@ -51,17 +51,23 @@ def verify_google_id_token(token: str) -> dict:
 
 
 def create_access_token(user_id: str, email: str) -> str:
-    """Create a signed JWT for the authenticated user."""
+    """Create a short-lived JWT access token (1 hour)."""
     expire = datetime.now(timezone.utc) + timedelta(
-        minutes=settings.JWT_EXPIRATION_MINUTES
+        minutes=settings.ACCESS_TOKEN_EXPIRY_MINUTES
     )
     payload = {
         "sub": user_id,
         "email": email,
         "exp": expire,
         "iat": datetime.now(timezone.utc),
+        "type": "access",
     }
     return jwt.encode(payload, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
+
+
+def create_refresh_token_value() -> str:
+    """Generate a cryptographically random refresh token string (not a JWT)."""
+    return secrets.token_urlsafe(48)
 
 
 def hash_password(password: str) -> str:
@@ -80,11 +86,13 @@ def generate_verification_code() -> str:
 
 
 def verify_access_token(token: str) -> dict | None:
-    """Verify and decode a JWT. Returns payload dict or None if invalid."""
+    """Verify and decode a JWT access token. Returns payload or None."""
     try:
         payload = jwt.decode(
             token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM]
         )
+        if payload.get("type") != "access":
+            return None
         return payload
     except JWTError:
         return None

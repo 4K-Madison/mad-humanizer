@@ -27,7 +27,11 @@ class Settings(BaseSettings):
     # JWT
     JWT_SECRET_KEY: str = "change-me-in-production"
     JWT_ALGORITHM: str = "HS256"
-    JWT_EXPIRATION_MINUTES: int = 1440  # 24 hours
+    ACCESS_TOKEN_EXPIRY_MINUTES: int = 60        # 1 hour
+    REFRESH_TOKEN_EXPIRY_DAYS: int = 7           # 7 days
+
+    # Redis
+    REDIS_URL: str = "redis://localhost:6379/0"
 
     # Email (Gmail SMTP)
     SMTP_HOST: str = "smtp.gmail.com"
