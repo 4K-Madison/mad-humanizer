@@ -50,7 +50,7 @@ export default function Footer() {
               About
             </h4>
             <p className="text-sm leading-relaxed text-muted-foreground">
-              Built with Llama 3.2 + LoRA fine-tuning. Multi-detector AI analysis powered by industry-leading APIs.
+              Built with Gemma-2-9b + LoRA fine-tuning. Multi-detector AI analysis powered by industry-leading APIs.
             </p>
           </div>
         </div>
