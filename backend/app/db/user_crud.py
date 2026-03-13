@@ -77,3 +77,24 @@ async def update_google_user(
     await session.commit()
     await session.refresh(user)
     return user
+
+
+async def link_google_to_user(
+    session: AsyncSession,
+    user: User,
+    google_id: str,
+    name: str | None,
+    picture_url: str | None,
+) -> User:
+    """Link a Google account to an existing email/password user."""
+    user.google_id = google_id
+    user.auth_provider = "both"
+    if not user.picture_url and picture_url:
+        user.picture_url = picture_url
+    if not user.name and name:
+        user.name = name
+    user.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
+    session.add(user)
+    await session.commit()
+    await session.refresh(user)
+    return user

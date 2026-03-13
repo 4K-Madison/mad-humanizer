@@ -24,6 +24,7 @@ from app.db.user_crud import (
     get_user_by_email,
     get_user_by_google_id,
     get_user_by_id,
+    link_google_to_user,
     update_google_user,
 )
 from app.db.verification_crud import (
@@ -108,6 +109,12 @@ class ResendCodeRequest(BaseModel):
     email: str
 
 
+class LinkGoogleRequest(BaseModel):
+    code: str
+    code_verifier: str
+    password: str
+
+
 # --- Helpers ---
 
 
@@ -186,6 +193,21 @@ async def google_login(
         user = await update_google_user(session, user, name, picture)
         logger.info("Existing user logged in", user_id=str(user.id), email=email)
     else:
+        # Check if email already registered with email/password
+        existing = await get_user_by_email(session, email)
+        if existing and existing.auth_provider == "email":
+            logger.info("Google login conflict with email account", email=email)
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "code": "EMAIL_ACCOUNT_EXISTS",
+                    "message": (
+                        "An account with this email already exists using email/password. "
+                        "Would you like to link your Google account?"
+                    ),
+                    "email": email,
+                },
+            )
         user = await create_google_user(session, email, name, picture, google_id)
         logger.info("New user created via Google", user_id=str(user.id), email=email)
 
@@ -374,6 +396,73 @@ async def resend_verification_code(
         raise HTTPException(status_code=503, detail="Failed to send email")
 
     return {"message": "New verification code sent"}
+
+
+@router.post("/link/google")
+async def link_google_account(
+    body: LinkGoogleRequest,
+    response: Response,
+    session: AsyncSession = Depends(get_session),
+):
+    """Link a Google account to an existing email/password user after password confirmation."""
+    # 1. Exchange Google code for tokens
+    try:
+        token_data = await exchange_google_code(body.code, body.code_verifier)
+    except Exception as exc:
+        logger.error("Google code exchange failed during linking", error=str(exc))
+        raise HTTPException(
+            status_code=400, detail="Failed to exchange authorization code"
+        )
+
+    # 2. Verify Google ID token
+    try:
+        id_info = verify_google_id_token(token_data["id_token"])
+    except Exception as exc:
+        logger.error("Google ID token verification failed during linking", error=str(exc))
+        raise HTTPException(status_code=400, detail="Invalid Google ID token")
+
+    google_id = id_info["sub"]
+    email = id_info["email"]
+    name = id_info.get("name")
+    picture = id_info.get("picture")
+
+    # 3. Find the existing email user
+    user = await get_user_by_email(session, email)
+    if not user or not user.hashed_password:
+        raise HTTPException(status_code=404, detail="No email account found for this address")
+
+    # 4. Verify password
+    if not verify_password(body.password, user.hashed_password):
+        raise HTTPException(status_code=401, detail="Incorrect password")
+
+    if not user.is_active:
+        raise HTTPException(status_code=403, detail="Account is deactivated")
+
+    # 5. Check google_id isn't already linked to another account
+    existing_google_user = await get_user_by_google_id(session, google_id)
+    if existing_google_user and existing_google_user.id != user.id:
+        raise HTTPException(
+            status_code=409,
+            detail="This Google account is already linked to a different user",
+        )
+
+    # 6. Link Google to the email account
+    user = await link_google_to_user(session, user, google_id, name, picture)
+
+    # 7. Set auth cookies
+    await _set_auth_cookies(response, user)
+
+    logger.info("Google account linked", user_id=str(user.id), email=email)
+    return {
+        "user": UserResponse(
+            id=str(user.id),
+            email=user.email,
+            name=user.name,
+            picture_url=user.picture_url,
+            auth_provider=user.auth_provider,
+        ),
+        "message": "Google account linked successfully",
+    }
 
 
 @router.get("/me")

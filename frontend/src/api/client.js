@@ -58,7 +58,16 @@ async function request(endpoint, options = {}) {
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
-    throw new Error(error.detail || `Request failed: ${response.status}`);
+    // Support structured error details (e.g., { code, message, email })
+    if (error.detail && typeof error.detail === "object") {
+      const err = new Error(error.detail.message || `Request failed: ${response.status}`);
+      err.data = error.detail;
+      err.status = response.status;
+      throw err;
+    }
+    const err = new Error(error.detail || `Request failed: ${response.status}`);
+    err.status = response.status;
+    throw err;
   }
 
   return response.json();

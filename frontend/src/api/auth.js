@@ -18,3 +18,6 @@ export const emailLogin = (email, password) =>
 
 export const resendVerificationCode = (email) =>
   api.post("/api/auth/email/resend", { email });
+
+export const linkGoogleAccount = (code, codeVerifier, password) =>
+  api.post("/api/auth/link/google", { code, code_verifier: codeVerifier, password });
