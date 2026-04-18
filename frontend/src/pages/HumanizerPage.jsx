@@ -34,7 +34,7 @@ export default function HumanizerPage() {
           </div>
         </div>
         <p className="max-w-2xl text-base leading-relaxed text-muted-foreground">
-          Paste AI-generated text on the left, get natural human-sounding content on the right. Powered by fine-tuned Llama 3.2 with LoRA adapters.
+          Paste AI-generated text on the left, get natural human-sounding content on the right. Powered by fine-tuned Gemma-2-9B with LoRA & DPO adapters.
         </p>
       </div>
 
