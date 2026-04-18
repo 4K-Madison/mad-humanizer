@@ -3,6 +3,7 @@ import time
 import structlog
 from fastapi import APIRouter, HTTPException, Request
 
+from app.config import settings
 from app.models.schemas import HumanizeRequest, HumanizeResponse
 
 logger = structlog.get_logger()
@@ -18,8 +19,8 @@ async def humanize_text(request: Request, body: HumanizeRequest):
         raise HTTPException(status_code=503, detail="Humanizer model is not available")
 
     options = body.options
-    temperature = options.temperature if options else 0.7
-    max_tokens = options.max_tokens if options else 2048
+    temperature = options.temperature if options else settings.TEMPERATURE
+    max_tokens = options.max_tokens if options else settings.MAX_OUTPUT_TOKENS
 
     start = time.perf_counter()
     try:
