@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     HUMANIZER_MODEL_NAME: str = "humanizer"
     HUMANIZER_API_KEY: str = ""
     MAX_OUTPUT_TOKENS: int = 2048
-    TEMPERATURE: float = 0.7
+    TEMPERATURE: float = 0.85
 
     # CORS
     CORS_ORIGINS: list[str] = ["http://localhost:5173"]
