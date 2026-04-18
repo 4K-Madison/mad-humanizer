@@ -69,6 +69,8 @@ class HumanizerService:
         }
 
         resp = await self.client.post("/v1/chat/completions", json=payload)
+        if resp.status_code != 200:
+            logger.error("vLLM error", status=resp.status_code, body=resp.text, payload=payload)
         resp.raise_for_status()
         data = resp.json()
         return data["choices"][0]["message"]["content"].strip()
