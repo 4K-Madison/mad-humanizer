@@ -66,6 +66,7 @@ class HumanizerService:
             "max_tokens": max_tokens,
             "temperature": temperature,
             "top_p": 0.9,
+            "top_k": 50,
         }
 
         resp = await self.client.post("/v1/chat/completions", json=payload)
