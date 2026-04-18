@@ -1,0 +1,75 @@
+import torch
+import random
+from typing import List, Dict
+
+@torch.no_grad()
+def generate_reply(
+    user_text: str,
+    num_samples: int = 4,           # 몇 번 generate할지 (3~6 추천)
+    max_new_tokens: int = 512,
+    temperature_range: tuple = (0.8, 0.9),
+    top_p: float = 0.92,
+    min_p: float = 0.05,
+    repetition_penalty: float = 1.07,   # 1.05~1.08 사이 추천
+) -> str:
+
+    messages = [
+    {
+        "role": "user",
+        "content": (
+            "You are a rewriting assistant.\n"
+            "Rewrite the input text with minimal edits only.\n"
+            "Preserve the original meaning, facts, tone, structure, named entities, "
+            "numbers, dates, quoted text, and list order exactly.\n"
+            "Do not summarize, shorten, omit, or add new information.\n"
+            "Keep the output length similar to the input.\n"
+            "Output only the rewritten text.\n\n"
+            f"Input text:\n{user_text}"
+        )
+    }
+    ]
+    prompt = tokenizer.apply_chat_template(
+        messages, tokenize=False, add_generation_prompt=True
+    )
+    inputs = tokenizer(prompt, return_tensors="pt").to(model.device)
+
+    candidates: List[str] = []
+
+    for i in range(num_samples):
+        # temperature를 매번 랜덤하게 선택
+        temperature = random.uniform(temperature_range[0], temperature_range[1])
+        outputs = model.generate(
+            **inputs,
+            max_new_tokens=max_new_tokens,
+            do_sample=True,
+            temperature=temperature,
+            top_p=top_p,
+            min_p=min_p,
+            repetition_penalty=repetition_penalty,
+            pad_token_id=tokenizer.eos_token_id,
+            eos_token_id=tokenizer.eos_token_id,
+        )
+
+        gen_tokens = outputs[0][inputs["input_ids"].shape[1]:]
+        text = tokenizer.decode(gen_tokens, skip_special_tokens=True).strip()
+        candidates.append(text)
+
+    # Burstiness 높은 것 고르기 (간단한 휴리스틱)
+    # 문장 길이의 표준편차가 클수록 burstiness가 높다고 판단
+    def get_burstiness(text: str) -> float:
+        if not text:
+            return 0.0
+        sentences = [s.strip() for s in text.split('.') if s.strip()]
+        if len(sentences) < 2:
+            return 0.0
+        lengths = [len(s.split()) for s in sentences]
+        import numpy as np
+        return float(np.std(lengths))   # 표준편차가 클수록 다양함
+
+    # burstiness 점수로 정렬해서 가장 높은 것 선택
+    scored = sorted(candidates, key=get_burstiness, reverse=True)
+    best_reply = scored[0]
+
+    print(f"[Debug] Generated {num_samples} samples | Temp: {temperature:.2f} | Best burstiness: {get_burstiness(best_reply):.2f}")
+
+    return best_reply

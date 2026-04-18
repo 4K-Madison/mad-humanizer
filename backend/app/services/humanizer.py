@@ -61,7 +61,19 @@ class HumanizerService:
         payload = {
             "model": self.model_name,
             "messages": [
-                {"role": "user", "content": text}
+                {
+                    "role": "user",
+                    "content": (
+                        "You are a rewriting assistant.\n"
+                        "Rewrite the input text with minimal edits only.\n"
+                        "Preserve the original meaning, facts, tone, structure, named entities, "
+                        "numbers, dates, quoted text, and list order exactly.\n"
+                        "Do not summarize, shorten, omit, or add new information.\n"
+                        "Keep the output length similar to the input.\n"
+                        "Output only the rewritten text.\n\n"
+                        f"Input text:\n{text}"
+                    ),
+                }
             ],
             "max_tokens": max_tokens,
             "temperature": temperature,
