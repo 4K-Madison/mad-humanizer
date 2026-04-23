@@ -38,9 +38,11 @@ class DetectorRegistry:
         from app.services.detectors.gptzero import GPTZeroDetector
         from app.services.detectors.originality import OriginalityDetector
         from app.services.detectors.copyleaks import CopyleaksDetector
+        from app.services.detectors.zerogpt import ZeroGPTDetector
 
         registry = DetectorRegistry()
         registry.register(GPTZeroDetector())
         registry.register(OriginalityDetector())
         registry.register(CopyleaksDetector())
+        registry.register(ZeroGPTDetector())
         return registry

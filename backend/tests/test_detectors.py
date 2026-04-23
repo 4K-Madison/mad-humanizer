@@ -97,7 +97,7 @@ class TestDetectorRegistry:
     def test_register_defaults(self):
         registry = DetectorRegistry.register_defaults()
         names = {d.name for d in registry.get_all()}
-        assert names == {"gptzero", "originality", "copyleaks"}
+        assert names == {"gptzero", "originality", "copyleaks", "zerogpt"}
 
 
 # ---------------------------------------------------------------------------

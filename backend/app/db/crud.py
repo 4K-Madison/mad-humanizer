@@ -17,6 +17,9 @@ async def create_request(
     detector_results: dict | None = None,
     status: RequestStatus = RequestStatus.pending,
     processing_time_ms: int | None = None,
+    ai_score: float | None = None,
+    attempts_count: int | None = None,
+    threshold_met: bool | None = None,
 ) -> RequestRecord:
     """Insert a new request record and return it."""
     record = RequestRecord(
@@ -26,6 +29,9 @@ async def create_request(
         detector_results=detector_results,
         status=status.value,
         processing_time_ms=processing_time_ms,
+        ai_score=ai_score,
+        attempts_count=attempts_count,
+        threshold_met=threshold_met,
     )
     session.add(record)
     await session.commit()

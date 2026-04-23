@@ -45,6 +45,14 @@ class Settings(BaseSettings):
     GPTZERO_API_KEY: str = ""
     ORIGINALITY_API_KEY: str = ""
     COPYLEAKS_API_KEY: str = ""
+    ZEROGPT_API_KEY: str = ""
+
+    # Humanize retry-loop tuning
+    HUMANIZE_DETECTOR_NAME: str = "zerogpt"
+    HUMANIZE_AI_SCORE_THRESHOLD: float = 0.35
+    HUMANIZE_MAX_ATTEMPTS: int = 3
+    HUMANIZE_TEMP_BUMP_PER_RETRY: float = 0.05
+    HUMANIZE_DETECTOR_TIMEOUT_SECONDS: float = 30.0
 
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 

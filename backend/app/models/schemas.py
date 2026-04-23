@@ -4,6 +4,8 @@ from pydantic import BaseModel, Field
 class HumanizeOptions(BaseModel):
     temperature: float = Field(default=0.7, ge=0.0, le=2.0)
     max_tokens: int = Field(default=1024, ge=1, le=2048)
+    enable_detector_gate: bool = True
+    max_attempts: int | None = Field(default=None, ge=1, le=10)
 
 
 class HumanizeRequest(BaseModel):
@@ -11,11 +13,25 @@ class HumanizeRequest(BaseModel):
     options: HumanizeOptions | None = None
 
 
+class HumanizeAttempt(BaseModel):
+    attempt: int
+    humanized_text: str
+    ai_score: float | None
+    detector: str
+    detector_error: str | None = None
+    temperature_used: float
+
+
 class HumanizeResponse(BaseModel):
     humanized_text: str
     input_length: int
     output_length: int
     processing_time_ms: int
+    ai_score: float | None = None
+    threshold_met: bool = False
+    attempts: list[HumanizeAttempt] = []
+    threshold: float | None = None
+    warning: str | None = None
 
 
 class DetectRequest(BaseModel):

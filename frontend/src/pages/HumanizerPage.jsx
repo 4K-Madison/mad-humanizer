@@ -2,9 +2,11 @@ import { useState } from "react";
 import { useHumanize } from "@/hooks/useHumanize";
 import HumanizerForm from "@/components/humanizer/HumanizerForm";
 import HumanizerResult from "@/components/humanizer/HumanizerResult";
+import AIScoreBadge from "@/components/humanizer/AIScoreBadge";
 import LoadingSpinner from "@/components/shared/LoadingSpinner";
 import ErrorAlert from "@/components/shared/ErrorAlert";
-import { Zap, ArrowRight } from "lucide-react";
+import WarningAlert from "@/components/shared/WarningAlert";
+import { Zap, ArrowRight, Repeat } from "lucide-react";
 
 export default function HumanizerPage() {
   const [inputText, setInputText] = useState("");
@@ -18,6 +20,14 @@ export default function HumanizerPage() {
     setInputText(text);
     if (result) reset();
   };
+
+  const attemptsCount = result?.attempts?.length ?? 0;
+  const attemptsLabel =
+    attemptsCount <= 1
+      ? "Humanized in 1 attempt"
+      : result?.threshold_met
+        ? `Humanized in ${attemptsCount} attempts`
+        : `Humanized in ${attemptsCount} attempts (best of ${attemptsCount})`;
 
   return (
     <div className="space-y-8">
@@ -78,14 +88,13 @@ export default function HumanizerPage() {
         </div>
       </div>
 
-      {/* Arrow indicator between panels (visible on lg+) */}
-      <div className="pointer-events-none absolute left-1/2 top-1/2 hidden -translate-x-1/2 -translate-y-1/2 lg:block" aria-hidden="true">
-        {/* Decorative — hidden because the grid gap is sufficient */}
-      </div>
-
       <ErrorAlert message={error} onDismiss={reset} />
 
-      {isLoading && <LoadingSpinner message="Humanizing your text..." />}
+      {result?.warning && <WarningAlert message={result.warning} />}
+
+      {isLoading && (
+        <LoadingSpinner message="Humanizing and verifying (this may take up to ~60s)..." />
+      )}
 
       {/* Stats bar */}
       {result && (
@@ -94,7 +103,7 @@ export default function HumanizerPage() {
             <ArrowRight className="h-4 w-4 text-badger" />
             <span className="font-display text-xs font-bold uppercase tracking-wide text-muted-foreground">Stats</span>
           </div>
-          <div className="flex flex-wrap gap-6 text-sm">
+          <div className="flex flex-wrap items-center gap-6 text-sm">
             <span className="text-muted-foreground">
               Input: <strong className="text-foreground">{result.input_length}</strong> chars
             </span>
@@ -104,6 +113,16 @@ export default function HumanizerPage() {
             <span className="text-muted-foreground">
               Time: <strong className="text-foreground">{(result.processing_time_ms / 1000).toFixed(1)}s</strong>
             </span>
+            {attemptsCount > 0 && (
+              <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+                <Repeat className="h-3.5 w-3.5" />
+                {attemptsLabel}
+              </span>
+            )}
+            <AIScoreBadge
+              score={result.ai_score}
+              threshold={result.threshold ?? 0.35}
+            />
           </div>
         </div>
       )}

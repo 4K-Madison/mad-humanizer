@@ -44,3 +44,6 @@ class RequestRecord(SQLModel, table=True):
         default_factory=lambda: datetime.now(timezone.utc).replace(tzinfo=None)
     )
     processing_time_ms: int | None = Field(default=None)
+    ai_score: float | None = Field(default=None)
+    attempts_count: int | None = Field(default=None)
+    threshold_met: bool | None = Field(default=None)
