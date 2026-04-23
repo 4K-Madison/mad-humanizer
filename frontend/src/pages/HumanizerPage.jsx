@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useHumanize } from "@/hooks/useHumanize";
 import HumanizerForm from "@/components/humanizer/HumanizerForm";
 import HumanizerResult from "@/components/humanizer/HumanizerResult";
@@ -6,19 +6,25 @@ import AIScoreBadge from "@/components/humanizer/AIScoreBadge";
 import LoadingSpinner from "@/components/shared/LoadingSpinner";
 import ErrorAlert from "@/components/shared/ErrorAlert";
 import WarningAlert from "@/components/shared/WarningAlert";
-import { Zap, ArrowRight, Repeat } from "lucide-react";
+import { computeDiff, diffStats } from "@/lib/diff";
+import { Zap, ArrowRight, Repeat, Edit3 } from "lucide-react";
 
 export default function HumanizerPage() {
   const [inputText, setInputText] = useState("");
+  const [submittedText, setSubmittedText] = useState("");
   const { result, isLoading, error, humanize, reset } = useHumanize();
 
   const handleSubmit = (text) => {
+    setSubmittedText(text);
     humanize(text);
   };
 
   const handleInputChange = (text) => {
     setInputText(text);
-    if (result) reset();
+    if (result) {
+      reset();
+      setSubmittedText("");
+    }
   };
 
   const attemptsCount = result?.attempts?.length ?? 0;
@@ -28,6 +34,11 @@ export default function HumanizerPage() {
       : result?.threshold_met
         ? `Humanized in ${attemptsCount} attempts`
         : `Humanized in ${attemptsCount} attempts (best of ${attemptsCount})`;
+
+  const changeStats = useMemo(() => {
+    if (!result?.humanized_text || !submittedText) return null;
+    return diffStats(computeDiff(submittedText, result.humanized_text));
+  }, [result?.humanized_text, submittedText]);
 
   return (
     <div className="space-y-8">
@@ -84,7 +95,11 @@ export default function HumanizerPage() {
               Humanized Text
             </span>
           </div>
-          <HumanizerResult result={result} isLoading={isLoading} />
+          <HumanizerResult
+            result={result}
+            isLoading={isLoading}
+            original={submittedText}
+          />
         </div>
       </div>
 
@@ -117,6 +132,15 @@ export default function HumanizerPage() {
               <span className="inline-flex items-center gap-1.5 text-muted-foreground">
                 <Repeat className="h-3.5 w-3.5" />
                 {attemptsLabel}
+              </span>
+            )}
+            {changeStats && (
+              <span
+                className="inline-flex items-center gap-1.5 text-muted-foreground"
+                title={`+${changeStats.added} chars added, -${changeStats.removed} chars removed`}
+              >
+                <Edit3 className="h-3.5 w-3.5" />
+                Changed: <strong className="text-foreground">{Math.round(changeStats.changeRatio * 100)}%</strong>
               </span>
             )}
             <AIScoreBadge
