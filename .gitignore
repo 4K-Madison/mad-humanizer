@@ -4,6 +4,7 @@ CLAUDE-ERROR.md
 git-commit-msg
 .claude/
 env-var.txt
+model/
 
 # Python
 __pycache__/
