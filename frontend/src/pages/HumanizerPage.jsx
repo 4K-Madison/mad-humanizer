@@ -7,12 +7,11 @@ import LoadingSpinner from "@/components/shared/LoadingSpinner";
 import ErrorAlert from "@/components/shared/ErrorAlert";
 import WarningAlert from "@/components/shared/WarningAlert";
 import { computeDiff, diffStats } from "@/lib/diff";
-import { Zap, ArrowRight, Repeat, Edit3, Eye, Layers, SplitSquareHorizontal } from "lucide-react";
+import { Zap, ArrowRight, Repeat, Edit3, Eye, Layers } from "lucide-react";
 
 const VIEW_MODES = [
   { id: "clean", label: "Clean", icon: Eye },
   { id: "inline", label: "Diff", icon: Layers },
-  { id: "split", label: "Split", icon: SplitSquareHorizontal },
 ];
 
 export default function HumanizerPage() {

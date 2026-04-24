@@ -15,15 +15,14 @@ export default function HumanizerForm({ value, onChange, onSubmit, isLoading }) 
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-1 flex-col">
-      <div className="relative flex-1">
+      <div className="relative h-[19.5rem]">
         <textarea
           placeholder="Paste your AI-generated text here..."
           value={value}
           onChange={(e) => onChange(e.target.value)}
           maxLength={MAX_LENGTH}
-          rows={12}
           disabled={isLoading}
-          className="w-full resize-none rounded-xl border border-border/80 bg-white px-5 py-4 font-body text-sm leading-relaxed text-foreground placeholder:text-muted-foreground/60 focus:border-badger focus:outline-none focus:ring-2 focus:ring-badger/10 disabled:cursor-not-allowed disabled:opacity-60"
+          className="h-full w-full resize-none rounded-xl border border-border/80 bg-white px-5 py-4 font-body text-sm leading-relaxed text-foreground placeholder:text-muted-foreground/60 focus:border-badger focus:outline-none focus:ring-2 focus:ring-badger/10 disabled:cursor-not-allowed disabled:opacity-60"
         />
       </div>
 

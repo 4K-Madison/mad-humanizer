@@ -5,7 +5,7 @@ import { FileText } from "lucide-react";
 export default function HumanizerResult({ result, isLoading, original = "", viewMode = "clean" }) {
   if (!result && !isLoading) {
     return (
-      <div className="flex flex-1 flex-col items-center justify-center rounded-xl border border-dashed border-border/80 bg-white/50 px-5 py-12">
+      <div className="flex h-[19.5rem] flex-col items-center justify-center rounded-xl border border-dashed border-border/80 bg-white/50 px-5">
         <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-muted">
           <FileText className="h-6 w-6 text-muted-foreground/50" />
         </div>
@@ -18,7 +18,7 @@ export default function HumanizerResult({ result, isLoading, original = "", view
 
   if (isLoading) {
     return (
-      <div className="flex flex-1 flex-col items-center justify-center rounded-xl border border-border/80 bg-white px-5 py-12">
+      <div className="flex h-[19.5rem] flex-col items-center justify-center rounded-xl border border-border/80 bg-white px-5">
         <div className="flex items-center gap-3">
           <div className="h-2 w-2 animate-pulse-red rounded-full bg-badger" />
           <div className="h-2 w-2 animate-pulse-red rounded-full bg-badger" style={{ animationDelay: "0.3s" }} />
@@ -39,31 +39,19 @@ export default function HumanizerResult({ result, isLoading, original = "", view
 
   return (
     <div className="flex flex-1 flex-col gap-2">
-      <div className="relative flex flex-1 flex-col">
+      <div className="relative h-[19.5rem]">
         {effectiveMode === "clean" ? (
-          <>
-            <textarea
-              value={humanized}
-              readOnly
-              rows={12}
-              className="w-full resize-none rounded-xl border border-emerald-200/80 bg-emerald-50/30 px-5 py-4 font-body text-sm leading-relaxed text-foreground focus:outline-none"
-            />
-            <div className="absolute right-3 top-3">
-              <CopyButton text={humanized} />
-            </div>
-          </>
+          <textarea
+            value={humanized}
+            readOnly
+            className="h-full w-full resize-none rounded-xl border border-emerald-200/80 bg-emerald-50/30 px-5 py-4 font-body text-sm leading-relaxed text-foreground focus:outline-none"
+          />
         ) : (
-          <div className="relative min-h-[18rem] flex-1">
-            <DiffView
-              original={original}
-              humanized={humanized}
-              mode={effectiveMode}
-            />
-            <div className="absolute right-3 top-3">
-              <CopyButton text={humanized} />
-            </div>
-          </div>
+          <DiffView original={original} humanized={humanized} />
         )}
+        <div className="absolute right-3 top-3">
+          <CopyButton text={humanized} />
+        </div>
       </div>
       {isIdentical && (
         <span className="text-xs font-medium text-amber-700">
