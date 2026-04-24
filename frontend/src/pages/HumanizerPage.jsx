@@ -7,12 +7,23 @@ import LoadingSpinner from "@/components/shared/LoadingSpinner";
 import ErrorAlert from "@/components/shared/ErrorAlert";
 import WarningAlert from "@/components/shared/WarningAlert";
 import { computeDiff, diffStats } from "@/lib/diff";
-import { Zap, ArrowRight, Repeat, Edit3 } from "lucide-react";
+import { Zap, ArrowRight, Repeat, Edit3, Eye, Layers, SplitSquareHorizontal } from "lucide-react";
+
+const VIEW_MODES = [
+  { id: "clean", label: "Clean", icon: Eye },
+  { id: "inline", label: "Diff", icon: Layers },
+  { id: "split", label: "Split", icon: SplitSquareHorizontal },
+];
 
 export default function HumanizerPage() {
   const [inputText, setInputText] = useState("");
   const [submittedText, setSubmittedText] = useState("");
+  const [viewMode, setViewMode] = useState("clean");
   const { result, isLoading, error, humanize, reset } = useHumanize();
+
+  const hasOriginal = Boolean(submittedText);
+  const hasOutput = Boolean(result?.humanized_text);
+  const canDiff = hasOriginal && hasOutput && !isLoading;
 
   const handleSubmit = (text) => {
     setSubmittedText(text);
@@ -63,7 +74,7 @@ export default function HumanizerPage() {
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Input panel */}
         <div className="flex flex-col">
-          <div className="mb-3 flex items-center justify-between">
+          <div className="mb-3 flex h-7 items-center justify-between">
             <div className="flex items-center gap-2">
               <div className="h-2 w-2 rounded-full bg-badger" />
               <span className="font-display text-sm font-bold uppercase tracking-wide text-foreground">
@@ -84,21 +95,52 @@ export default function HumanizerPage() {
 
         {/* Output panel */}
         <div className="flex flex-col">
-          <div className="mb-3 flex items-center justify-between">
+          <div className="mb-3 flex h-7 items-center justify-between">
             <div className="flex items-center gap-2">
               <div className="h-2 w-2 rounded-full bg-emerald-500" />
               <span className="font-display text-sm font-bold uppercase tracking-wide text-foreground">
                 Output
               </span>
             </div>
-            <span className="text-xs font-medium text-muted-foreground">
-              Humanized Text
-            </span>
+            {canDiff ? (
+              <div
+                role="tablist"
+                aria-label="Output view mode"
+                className="inline-flex items-center gap-1 rounded-lg border border-border/80 bg-muted/40 p-0.5"
+              >
+                {VIEW_MODES.map((m) => {
+                  const Icon = m.icon;
+                  const active = viewMode === m.id;
+                  return (
+                    <button
+                      key={m.id}
+                      role="tab"
+                      aria-selected={active}
+                      onClick={() => setViewMode(m.id)}
+                      className={
+                        "inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-semibold transition-colors " +
+                        (active
+                          ? "bg-white text-foreground shadow-sm"
+                          : "text-muted-foreground hover:text-foreground")
+                      }
+                    >
+                      <Icon className="h-3.5 w-3.5" />
+                      {m.label}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <span className="text-xs font-medium text-muted-foreground">
+                Humanized Text
+              </span>
+            )}
           </div>
           <HumanizerResult
             result={result}
             isLoading={isLoading}
             original={submittedText}
+            viewMode={viewMode}
           />
         </div>
       </div>

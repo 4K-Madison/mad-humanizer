@@ -1,17 +1,8 @@
-import { useState } from "react";
 import CopyButton from "@/components/shared/CopyButton";
 import DiffView from "@/components/humanizer/DiffView";
-import { FileText, Eye, SplitSquareHorizontal, Layers } from "lucide-react";
+import { FileText } from "lucide-react";
 
-const VIEW_MODES = [
-  { id: "clean", label: "Clean", icon: Eye },
-  { id: "inline", label: "Diff", icon: Layers },
-  { id: "split", label: "Split", icon: SplitSquareHorizontal },
-];
-
-export default function HumanizerResult({ result, isLoading, original = "" }) {
-  const [viewMode, setViewMode] = useState("clean");
-
+export default function HumanizerResult({ result, isLoading, original = "", viewMode = "clean" }) {
   if (!result && !isLoading) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center rounded-xl border border-dashed border-border/80 bg-white/50 px-5 py-12">
@@ -47,44 +38,7 @@ export default function HumanizerResult({ result, isLoading, original = "" }) {
   const effectiveMode = canDiff ? viewMode : "clean";
 
   return (
-    <div className="flex flex-1 flex-col gap-3">
-      {canDiff && (
-        <div className="flex items-center justify-between gap-3">
-          <div
-            role="tablist"
-            aria-label="Output view mode"
-            className="inline-flex items-center gap-1 rounded-lg border border-border/80 bg-muted/40 p-1"
-          >
-            {VIEW_MODES.map((m) => {
-              const Icon = m.icon;
-              const active = effectiveMode === m.id;
-              return (
-                <button
-                  key={m.id}
-                  role="tab"
-                  aria-selected={active}
-                  onClick={() => setViewMode(m.id)}
-                  className={
-                    "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-semibold transition-colors " +
-                    (active
-                      ? "bg-white text-foreground shadow-sm"
-                      : "text-muted-foreground hover:text-foreground")
-                  }
-                >
-                  <Icon className="h-3.5 w-3.5" />
-                  {m.label}
-                </button>
-              );
-            })}
-          </div>
-          {isIdentical && (
-            <span className="text-xs font-medium text-amber-700">
-              No changes detected — try raising temperature
-            </span>
-          )}
-        </div>
-      )}
-
+    <div className="flex flex-1 flex-col gap-2">
       <div className="relative flex flex-1 flex-col">
         {effectiveMode === "clean" ? (
           <>
@@ -111,6 +65,11 @@ export default function HumanizerResult({ result, isLoading, original = "" }) {
           </div>
         )}
       </div>
+      {isIdentical && (
+        <span className="text-xs font-medium text-amber-700">
+          No changes detected — try raising temperature
+        </span>
+      )}
     </div>
   );
 }
